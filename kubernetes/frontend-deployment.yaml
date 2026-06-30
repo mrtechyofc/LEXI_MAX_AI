@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: lexi-frontend, namespace: lexi }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: lexi-frontend } }
+  template:
+    metadata: { labels: { app: lexi-frontend } }
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/yourorg/lexi-frontend:latest
+          ports: [{ containerPort: 3000 }]
+          env:
+            - { name: NEXT_PUBLIC_API_URL, value: "https://api.lexi.example.com" }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: lexi-frontend, namespace: lexi }
+spec:
+  selector: { app: lexi-frontend }
+  ports: [{ port: 3000, targetPort: 3000 }]

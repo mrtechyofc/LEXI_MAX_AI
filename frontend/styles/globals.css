@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+html, body { background: #05070d; color: #e5e7eb; height: 100%; }
+body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif; }
+::selection { background: #5eead4; color: #0b1018; }
+
+.glass { background: rgba(11, 16, 24, .65); backdrop-filter: blur(12px); }
+.scanline {
+  background-image: linear-gradient(transparent 50%, rgba(94, 234, 212, 0.04) 50%);
+  background-size: 100% 4px;
+}

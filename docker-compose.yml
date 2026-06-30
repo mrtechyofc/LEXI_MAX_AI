@@ -1,0 +1,102 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-lexi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lexi}
+      POSTGRES_DB: ${POSTGRES_DB:-lexi}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+
+  chroma:
+    image: chromadb/chroma:latest
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma:/chroma/chroma
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    env_file: .env
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_started }
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app/backend
+      - ./data:/app/data
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    env_file: .env
+    depends_on: [redis, postgres]
+    command: celery -A backend.services.celery_app.celery worker --loglevel=INFO
+    volumes:
+      - ./backend:/app/backend
+      - ./data:/app/data
+
+  beat:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    env_file: .env
+    depends_on: [redis]
+    command: celery -A backend.services.celery_app.celery beat --loglevel=INFO
+
+  flower:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    env_file: .env
+    depends_on: [redis]
+    ports: ["5555:5555"]
+    command: celery -A backend.services.celery_app.celery flower --port=5555
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend.Dockerfile
+    env_file: .env
+    ports:
+      - "3000:3000"
+    depends_on: [backend]
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./deployment/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports: ["9090:9090"]
+
+  grafana:
+    image: grafana/grafana:latest
+    ports: ["3001:3000"]
+    depends_on: [prometheus]
+    volumes:
+      - grafana:/var/lib/grafana
+
+volumes:
+  pgdata:
+  chroma:
+  grafana:

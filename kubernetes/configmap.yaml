@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lexi-config
+  namespace: lexi
+data:
+  LEXI_ENV: "production"
+  LEXI_LOG_LEVEL: "INFO"
+  DEFAULT_LLM_PROVIDER: "openai"
+  VECTOR_BACKEND: "chromadb"
+  PROMETHEUS_ENABLED: "true"
